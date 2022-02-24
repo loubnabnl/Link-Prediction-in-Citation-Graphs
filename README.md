@@ -21,3 +21,16 @@ To execute the code you can run
 ```
 python main.py 
 ```
+
+## To do
+
+- [ ] Put data in drive, put embeddings too and change the naming
+- [ ] Change paths in all files
+- [ ] Make sure evrything runs correctly
+- [ ] Add classification models to a folder  `model/`?
+- [ ] Modify the notebook (to use only code in the repo)
+
+Additional:
+- [ ] Change code for extract_features and the way we read the data
+- [ ] Write download.sh
+- [ ] Put hyperparameters in config file
