@@ -1,0 +1,12 @@
+gensim
+karateclub
+networkx
+nltk
+nodevectors
+numpy
+torch
+transformers
+tqdm
+scikit_learn
+scipy
+xgboost
