@@ -4,6 +4,8 @@ import nltk
 import pickle
 import gzip
 import argparse
+from tqdm import tqdm
+import numpy as np
 
 def abstract_encoding(args):
     # Create a graph
@@ -56,28 +58,29 @@ def main(args):
       training_words += [word for word in abstracts[node].split() if word not in stpwds]
     training_words = list(set(training_words))
 
-
-    model = word2vec.Word2Vec(training_words, workers=4, size=64, min_count=5, window=20)
+    print('Training Word2vec model...')
+    model = word2vec.Word2Vec(training_words, workers=4, size=args.emb_size, min_count=5, window=20)
 
     abstract_emb = dict()
     for node in tqdm(nodes):
       abstract_emb[node] = abstract_embedding(abstracts[node], model)
 
 
-    #@title
-    print('saving embeddings')
+    print("----- Saving the embeddings -----")
     file = gzip.GzipFile(args.path_save, 'wb')
-    file.write(pickle.dumps(EMBEDDING_FILENAME))
+    file.write(pickle.dumps(abstract_emb))
     file.close()
 
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="edgelist.txt", 
+    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
         help="Path to the graph edges text file")
-    parser.add_argument("-pa", "--path_abstract", type=str, default="../abstracts.txt",
+    parser.add_argument("-pa", "--path_abstract", type=str, default="data/abstracts.txt",
                         help="Path to the abstract text file")
-    parser.add_argument("-ps", "--path_save", type=str, default="./abstract_wv_embeddings.emb",
+    parser.add_argument("-sz", "--emb_size", type=int, default=64, 
+                        help="word2vec abstract embedding size")
+    parser.add_argument("-ps", "--path_save", type=str, default="ambeddings/abstract_wv_embeddings.emb",
                         help="Path to save the abstract embeddings file")
 
     
