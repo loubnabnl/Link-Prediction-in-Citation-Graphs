@@ -1,11 +1,12 @@
 import gzip
 import pickle
 import numpy as np
+import scipy
 import torch
 import networkx as nx
 from tqdm import tqdm
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.metrics import f1_score, roc_auc_score
+from sklearn.metrics import f1_score, log_loss
 
 def load_features(filename):
     with gzip.open(filename, "rb") as f:
@@ -23,66 +24,92 @@ def cosine_similarity(node_ids, text2vec):
     return similarity
 
 def return_metrics(true, preds, thres=0.5):
-    preds = torch.cat(preds, dim=0).numpy()
-    true = torch.cat(true, dim=0).numpy()
     preds_label = np.where(preds > thres, 1, 0)
     f1 = f1_score(true, preds_label)
-    auc = roc_auc_score(true, preds)
-    return f1, auc
+    logloss = log_loss(true, preds.astype(np.float64))
+    return f1, logloss
 
-def extract_features(graph, authors, n2v, t2v, samples, paper_sim, node_mapping, pagerank, katz):
-    feature_func = lambda x, y: np.concatenate([x, y])
+def cosine_sim(arr1, arr2, eps=0.001):
+    norm1 = np.linalg.norm(arr1)
+    norm2 = np.linalg.norm(arr2)
+    if norm1 < eps or norm2 < eps:
+      return 0
+    return np.dot(arr1, arr2)/(np.linalg.norm(arr1)*np.linalg.norm(arr2))
 
+def load_adjacency_author(authors, path_adj = 'data/adjacencyfinal.npz'):
+  A = scipy.sparse.load_npz(path_adj)
+  list_all_authors = []
+  aut = list(authors.values())
+  for x in aut:
+    x_list = x.split(",")
+    x_list[-1] = x_list[-1][:-1]
+    for auth in x_list:
+      list_all_authors.append(auth)
+  unique_authors = np.unique(list_all_authors)
+
+  aut_to_index = {}
+  i=0
+  for auth in unique_authors:
+    aut_to_index[auth] = i
+    i+=1
+  return A, aut_to_index
+
+def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstract_embedding='scibert'):
+    
     features = list()
+    A, aut_to_index = load_adjacency_author(authors, path_adj = 'adjacencyfinal.npz')
 
     for edge in tqdm(samples):
+
         ## Graph features
+        sum_dg = graph.degree(edge[0]) + graph.degree(edge[1])
+        diff_dg = abs(graph.degree(edge[0]) - graph.degree(edge[1]))
+        AAI = list(nx.adamic_adar_index(graph, [(edge[0], edge[1])]))[0][2]
+        JC = list(nx.jaccard_coefficient(graph, [(edge[0], edge[1])]))[0][2]
+        PA = list(nx.preferential_attachment(graph, [(edge[0], edge[1])]))[0][2]
+        CN = len(list(nx.common_neighbors(graph, u=edge[0], v=edge[1])))
+        if partition[edge[0]] == partition[edge[1]]:
+            com_partition = 1
+        else:
+            com_partition = 0
+        cluster_coeff = gd["clustering_coeff"][edge[0]] * gd["clustering_coeff"][edge[1]]
+        eigenvector = gd["eigenvector"][edge[0]] * gd["eigenvector"][edge[1]]
+
+        ## Embeddings
+        cosine_node = cosine_sim(n2v[edge[0]], n2v[edge[1]])
+        cosine_author = cosine_sim(a2v[edge[0]], a2v[edge[1]])
+        if abstract_embedding=='scibert':
+            cosine_abstract = cosine_sim(t2v[edge[0]], t2v[edge[1]])
+        else:
+            #compute L2 distance for distance word2vec sentence embeddings
+            cosine_abstract = np.linalg.norm(t2v[edge[0]] - t2v[edge[1]])
         
-        node_left, node_right = edge[0], edge[1]
-        # Retrieve features of node2vec embedding
-        diff_n2v = feature_func(n2v[node_left], n2v[node_right])
-
-        # Resource Allocation Index
-        RAI = list(nx.resource_allocation_index(graph, [(node_left, node_right)]))[0][2]
-        # Jaccard Coefficient
-        JC = list(nx.jaccard_coefficient(graph, [(node_left, node_right)]))[0][2]
-        # Adamic Adar Index
-        AAI = list(nx.adamic_adar_index(graph, [(node_left, node_right)]))[0][2]
-        # Preferential Attachment
-        PA = list(nx.preferential_attachment(graph, [(node_left, node_right)]))[0][2]
-        # Common Neighbors
-        CN = len(list(nx.common_neighbors(graph, u=node_left, v=node_right)))
-        # Page Rank
-        PR = np.log(pagerank[node_left] * pagerank[node_right])
-        # Katz
-        KZ = np.log(katz[node_left] * katz[node_right])
-
-        graph_features = list(diff_n2v) + [PR, KZ, RAI, JC, AAI, PA, CN]
-
-        ## Text features
-
-        # Retrieve cosine similarity between asbtract
-        cos_sim = paper_sim[node_mapping[node_left], node_mapping[node_right]]
-
+        features_final = np.concatenate([n2v[edge[0]], n2v[edge[1]], t2v[edge[0]], t2v[edge[1]], 
+                                        a2v[edge[0]], a2v[edge[1]]])
+        
+        ## More features
         # Common Authors
-        authors_left = authors[node_left]
-        authors_right = authors[node_right]
+        authors_left = authors[edge[0]]
+        authors_right = authors[edge[1]]
+
+        # Collaboration measure
+        L1 = list(set(authors_left.strip().split(',')))
+        L2 = list(set(authors_right.strip().split(',')))
+        colab = 0
+        for author in L1:
+          for author2 in L2:
+            colab += A[aut_to_index[author], aut_to_index[author2]] 
+
+        colab_mean = colab/(len(authors_left)*len(authors_right))
 
         if authors_left is None or authors_right is None:
             common_authors = float('nan')
         else:
-            common_authors = len(list(set(authors_left).intersection(authors_right)))
+            common_authors = len(list(set(authors_left.strip().split(',')).intersection(authors_right.strip().split(','))))
 
-        text_features = [cos_sim, common_authors]
-
-        total_features = graph_features + text_features
+        total_features = list(features_final) + [JC, AAI, PA, CN, com_partition, cluster_coeff, eigenvector, cosine_node, dist_abstract, cosine_author, 
+                                                 sum_dg, diff_dg, common_authors, colab, colab_mean]
 
         features.append(total_features)
 
-    return features
-
-def get_training_graph(graph, edges_to_remove):
-    res_graph = graph.copy()
-    for edge in edges_to_remove:
-        res_graph.remove_edge(edge[0], edge[1])
-    return res_graph
+    return np.stack(features)
