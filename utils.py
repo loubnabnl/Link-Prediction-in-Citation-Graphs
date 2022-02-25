@@ -5,23 +5,12 @@ import scipy
 import torch
 import networkx as nx
 from tqdm import tqdm
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import f1_score, log_loss
 
 def load_features(filename):
     with gzip.open(filename, "rb") as f:
         loaded_object = pickle.load(f)
         return loaded_object
-    
-def cosine_similarity(node_ids, text2vec):
-    text_embedding = []
-    for node in node_ids:
-        text_embedding.append(text2vec[node])
-
-    text_embedding = np.stack(text_embedding, axis=0)
-    similarity = cosine_similarity(text_embedding, text_embedding)
-
-    return similarity
 
 def return_metrics(true, preds, thres=0.5):
     preds_label = np.where(preds > thres, 1, 0)
@@ -37,27 +26,45 @@ def cosine_sim(arr1, arr2, eps=0.001):
     return np.dot(arr1, arr2)/(np.linalg.norm(arr1)*np.linalg.norm(arr2))
 
 def load_adjacency_author(authors, path_adj = 'data/adjacencyfinal.npz'):
-  A = scipy.sparse.load_npz(path_adj)
-  list_all_authors = []
-  aut = list(authors.values())
-  for x in aut:
-    x_list = x.split(",")
-    x_list[-1] = x_list[-1][:-1]
-    for auth in x_list:
-      list_all_authors.append(auth)
-  unique_authors = np.unique(list_all_authors)
+    """Load adjacency matrix generated for the author graph"""
 
-  aut_to_index = {}
-  i=0
-  for auth in unique_authors:
-    aut_to_index[auth] = i
-    i+=1
-  return A, aut_to_index
+    A = scipy.sparse.load_npz(path_adj)
+    list_all_authors = []
+    aut = list(authors.values())
+    for x in aut:
+        x_list = x.split(",")
+        x_list[-1] = x_list[-1][:-1]
+        for auth in x_list:
+            list_all_authors.append(auth)
+    unique_authors = np.unique(list_all_authors)
 
-def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstract_embedding='scibert'):
-    
+    aut_to_index = {}
+    i=0
+    for auth in unique_authors:
+        aut_to_index[auth] = i
+        i+=1
+    return A, aut_to_index
+
+def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstract_embedding='scibert', path_adj = 'data/adjacencyfinal.npz'):
+    """Build feature matrix from the graph as a concatenation of
+    node embeddings, abstract embeddings and authors embeddings with other contextual and graph-based features
+
+    Arguments:
+        graph: the graph of the citation network
+        authors:dictionnary of the lists of authors of papers
+        n2v: node embeddings
+        t2v: abstract embeddings
+        a2v: author embeddings for the papers
+        samples: node pairs of the data
+        gd: graph dictionary with clustering coeff, partition and eigenvector centrality of graph
+        abstract_embedding: either 'scibert' or 'word2vec'
+        path_adj: path to the adjacency matrix of the author graph we generated
+
+    Returns:
+        numpy array storing features associated to node pairs in samples"""
+        
     features = list()
-    A, aut_to_index = load_adjacency_author(authors, path_adj = 'adjacencyfinal.npz')
+    A, aut_to_index = load_adjacency_author(authors, path_adj = path_adj)
 
     for edge in tqdm(samples):
 
