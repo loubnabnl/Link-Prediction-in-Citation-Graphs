@@ -1,5 +1,3 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.neural_network import MLPClassifier
 import numpy as np
 import networkx as nx
 import community.community_louvain as com
@@ -81,7 +79,7 @@ def main(args):
         y_pred = clf.predict_proba(X_test)[:,1]
         
     predictions = zip(range(len(y_pred)), y_pred)
-    with open(f"/content/submission.csv","w") as pred:
+    with open(f"submission.csv","w") as pred:
         csv_out = csv.writer(pred)
         csv_out.writerow(['id','predicted'])
         for row in predictions:
@@ -106,6 +104,7 @@ if __name__ =="__main__":
         help="Path to the author  text file")
     parser.add_argument("-m", "--model", type=str, default="xgboost", 
         help="Model to compute the predictions")
+
     
     
     
