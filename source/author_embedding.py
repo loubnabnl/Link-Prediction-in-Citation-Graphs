@@ -1,7 +1,6 @@
 import os
 import gzip
 import pickle
-
 import networkx as nx
 import argparse
 from time import time
@@ -67,9 +66,6 @@ def main(args):
 
 
 
-
-
-
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
@@ -79,14 +75,11 @@ if __name__ == '__main__':
     parser.add_argument("-nc", "--n_components", type=int, default=20,
                         help="Size of the embedding")
     parser.add_argument("-pa", "--authors", type=str, default="data/authors.txt", 
-        help="Path to the author  text file")
+                        help="Path to the author  text file")
     parser.add_argument("-ps", "--path_save", type=str, default="embeddings/authors_embeddings.emb",
-                        help="Path to save the abstract embeddings file")
-    
+                        help="Path to save the authors embeddings file")
 
     main(parser.parse_args())
-    
-    
     
     
     
