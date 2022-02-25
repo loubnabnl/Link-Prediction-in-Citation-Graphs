@@ -5,8 +5,8 @@ Link prediction is the problem of predicting the existence of a link between two
 ## Setup
 ``` bash
 # Clone this repository
-git clone https://github.com/loubnabnl/ALTEGRAD-challenge-Link-prediction.git
-cd ALTEGRAD-challenge-Link-prediction/
+git clone https://github.com/loubnabnl/Link-Prediction-in-Citation-Graphs.git
+cd Link-Prediction-in-Citation-Graphs/
 # Install packages
 pip install -r requirements.txt
 ```
