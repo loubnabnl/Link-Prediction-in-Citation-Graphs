@@ -10,7 +10,7 @@ import argparse
 from sklearn.decomposition import PCA
 
 def dim_reduction(text2vec, first_size = 250, final_size=64):
-  """method to reduce dimension of abstract embeddings in text2vec to the size: final_size
+  """method to reduce dimension of abstract embeddings in text2vec to a size=final_size
   source code: https://github.com/vyraun/Half-Size/blob/master/algo.py"""
   pca_embeddings = {}
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         help="Argument scpecifying whether to keep the embedding size 768 of scibert or reduce it")
     parser.add_argument("-dr", "--dim_reduction", type=int, default=64, 
         help="embedding size after dimension reduction if applied")
-    parser.add_argument("-ps", "--path_save", type=str, default="embeddings/abstracts_scibert_embeddings.emb",
+    parser.add_argument("-ps", "--path_save", type=str, default="embeddings/abstract_embeddings.emb",
                         help="Path to save the abstract embeddings file")
 
     create_scibert_embeddings(parser.parse_args())
