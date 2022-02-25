@@ -23,14 +23,4 @@ python main.py
 ```
 
 ## To do
-
-- [x] Put data in drive, put embeddings too and change the naming
-- [ ] Change paths in all files
-- [ ] Make sure everything runs correctly
-- [x] Add classification models to a folder  `model/`
-- [ ] Modify the notebook (to use only code in the repo)
-
-Additional:
-- [x] Change code for extract_features and the way we read the data
-- [ ] Write download.sh to dowload data an dplace it in folders in one command line
-- [ ] Put hyperparameters in config file
+- [ ] add config file and a notebook
