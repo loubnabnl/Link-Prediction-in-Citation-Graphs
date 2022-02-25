@@ -106,9 +106,4 @@ if __name__ =="__main__":
     parser.add_argument("-m", "--model", type=str, default="xgboost", 
         help="Model to compute the predictions")
 
-    
-    
-    
-    
-
     main(parser.parse_args())    
