@@ -69,7 +69,7 @@ def main(args):
     
     print("Test phase...")
     node_pairs = list()
-    with open('test.txt', 'r') as f:
+    with open(args.path_test, 'r') as f:
         for line in f:
             t = line.split(',')
             node_pairs.append((int(t[0]), int(t[1])))
@@ -91,12 +91,13 @@ if __name__ =="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pg", "--path_graph", type=str, default="edgelist.txt", 
         help="Path to the graph edges text file")
+    parser.add_argument("-pg", "--path_test", type=str, default="test.txt", 
+        help="Path to the test file")
     parser.add_argument("-ab", "--abstract_path", type=str, default="embeddings/abstract_embeddings.emb",
                         help="Path to the abstract text file")
-
-    parser.add_argument("-pn", "--nodes_path", type=str, default="embeddings/NETMF42_emb.emb", 
+    parser.add_argument("-pn", "--nodes_path", type=str, default="embeddings/node_embeddings.emb", 
         help="Path to the node embeddings file")
-    parser.add_argument("-pa", "--authors_path", type=str, default="embeddings/authors_emb.emb", 
+    parser.add_argument("-pa", "--authors_path", type=str, default="embeddings/authors_embeddings.emb", 
         help="Path to the author embeddings file")
     parser.add_argument("-a", "--authors", type=str, default="data/authors.txt", 
         help="Path to the author  text file")
