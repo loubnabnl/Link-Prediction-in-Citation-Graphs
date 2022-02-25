@@ -101,7 +101,7 @@ if __name__ =="__main__":
     parser.add_argument("-a", "--authors", type=str, default="data/authors.txt", 
         help="Path to the author  text file")
     parser.add_argument("-nr", "--neg_ratio", type=int, default=1, 
-        help="Path to the author  text file")
+        help="ratio of negative samples")
     parser.add_argument("-m", "--model", type=str, default="xgboost", 
         help="Model to compute the predictions")
 
