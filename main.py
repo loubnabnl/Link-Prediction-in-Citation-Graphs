@@ -1,14 +1,14 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-from utils import *
 import numpy as np
+import networkx as nx
 import community.community_louvain as com
 import pickle 
 import csv
 from xgboost import XGBClassifier
 import argparse
-
-
+from utils import load_features, sample_negative_links, get_training_graph, extract_features, return_metrics
+from models import train_MLP
 
 
 def main(args):
@@ -26,6 +26,7 @@ def main(args):
     m = G.number_of_edges()
 
     # Features related to the texts
+    print('Loading embeddings...')
     text2vec = load_features(args.abstract_path)
     aut2vec = load_features(args.authors_path)
     nodes2vec = load_features(args.nodes_path)
@@ -34,59 +35,48 @@ def main(args):
     pos_samples_train, neg_samples_train, pos_samples_dev, neg_samples_dev = sample_negative_links(G, neg_ratio=args.neg_ratio)
     
     graph = get_training_graph(G, pos_samples_dev)
-    pr = nx.pagerank(graph,alpha=0.85, max_iter=200)
     graph_dicts = dict()
     graph_dicts["clustering_coeff"] = nx.algorithms.cluster.clustering(graph)
     graph_dicts["eigenvector"] = nx.algorithms.centrality.eigenvector_centrality(graph)
     partition = com.best_partition(graph)
     
-        #split data
+    #split data
     train_samples = pos_samples_train + neg_samples_train
     train_labels = [1 for x in pos_samples_train] + [0 for x in neg_samples_train]
     dev_samples = pos_samples_dev + neg_samples_dev
     dev_labels = [1 for x in pos_samples_dev] + [0 for x in neg_samples_dev]
     
-    
-
-    adjacency_author = np.load('./adjacencyfinal.npz')
+    adjacency_author = np.load('embeddings/adjacencyfinal.npz')
 
     filename = 'aut_to_indexfinal.pkl'
     with open(filename, 'rb') as f:
         aut_to_index  = pickle.load(f)
         
-        
-    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, pr, graph_dicts, partition)
-    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, pr, graph_dicts, partition)
+    print('Generating training and validation features...')  
+    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, graph_dicts, partition)
+    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, graph_dicts, partition)
+    
+    #classification
+    print(f'Training Classifier {args.model} ...')
     if args.model == "xgboost":
         clf = XGBClassifier(max_depth=4, scale_pos_weight=3, learning_rate=0.1, n_estimators=2000, n_jobs=4, tree_method='gpu_hist', predictor="gpu_predictor", random_state=42, seed=42)
         clf.fit(X_train, list(train_labels), eval_metric="logloss", early_stopping_rounds=300, eval_set=[(X_dev, list(dev_labels))], verbose=1)
+        
     elif args.model == "MLP":
-        
-        clf_mlp = MLPClassifier(hidden_layer_sizes=(150,100,60,30,2), verbose=1, early_stopping=True, n_iter_no_change=3, max_iter = 10)
-        clf_mlp.fit(X_train, train_labels)
-        y_pred = clf.predict_proba(X_dev[:, -25:])[:,1]
-        score = return_metrics(dev_labels, y_pred)
-        print("Validation LogLoss: ", score[2])
-        
-    elif args.model == "LogisticRegression":
-        clf = LogisticRegression()
-        clf.fit(X_train, train_labels)
-        y_pred = clf.predict_proba(X_dev[:, -25:])[:,1]
-        score = return_metrics(dev_labels, y_pred)
-        print("Validation LogLoss: ", score[2])
-        
-    elif args.model == "kerasMLP":
-        clf = neural_net(X_train, train_labels, X_dev, dev_labels)
-        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, pr, graph_dicts, partition)
+        clf = train_MLP(X_train, train_labels, X_dev, dev_labels)
+        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts, partition)
         y_pred = clf.predict(X_test)
-
+    else:
+        raise ValueError('Invalid classifcation model name')
+    
+    print("Test phase...")
     node_pairs = list()
     with open('test.txt', 'r') as f:
         for line in f:
             t = line.split(',')
             node_pairs.append((int(t[0]), int(t[1])))
     if not(X_test):
-        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, pr, graph_dicts, partition)
+        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts, partition)
         
         y_pred = clf.predict_proba(X_test)[:,1]
         
@@ -103,14 +93,14 @@ if __name__ =="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-pg", "--path_graph", type=str, default="edgelist.txt", 
         help="Path to the graph edges text file")
-    parser.add_argument("-ab", "--abstract_path", type=str, default="../abstract_embeddings.emb",
+    parser.add_argument("-ab", "--abstract_path", type=str, default="embeddings/abstract_embeddings.emb",
                         help="Path to the abstract text file")
 
-    parser.add_argument("-pn", "--nodes_path", type=str, default="../NETMF42_emb.emb", 
+    parser.add_argument("-pn", "--nodes_path", type=str, default="embeddings/NETMF42_emb.emb", 
         help="Path to the node embeddings file")
-    parser.add_argument("-pa", "--authors_path", type=str, default="../authors_emb.emb", 
+    parser.add_argument("-pa", "--authors_path", type=str, default="embeddings/authors_emb.emb", 
         help="Path to the author embeddings file")
-    parser.add_argument("-a", "--authors", type=str, default="../authors.txt", 
+    parser.add_argument("-a", "--authors", type=str, default="data/authors.txt", 
         help="Path to the author  text file")
     parser.add_argument("-nr", "--neg_ratio", type=int, default=1, 
         help="Path to the author  text file")
