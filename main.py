@@ -42,26 +42,21 @@ def main(args):
     dev_samples = pos_samples_dev + neg_samples_dev
     dev_labels = [1 for x in pos_samples_dev] + [0 for x in neg_samples_dev]
     
-    adjacency_author = np.load('embeddings/adjacencyfinal.npz')
-
-    filename = 'aut_to_indexfinal.pkl'
-    with open(filename, 'rb') as f:
-        aut_to_index  = pickle.load(f)
+    adjacency_author = np.load(args.authors_adj)
         
     print('Generating training and validation features...')  
-    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, graph_dicts)
-    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, graph_dicts)
+    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, graph_dicts, path_adj=args.authors_adj)
+    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, graph_dicts, path_adj=args.authors_adj)
     
     #classification
     print(f'Training Classifier {args.model} ...')
     if args.model == "xgboost":
         clf = XGBClassifier(max_depth=4, scale_pos_weight=3, learning_rate=0.1, n_estimators=2000, n_jobs=4, tree_method='gpu_hist', predictor="gpu_predictor", random_state=42, seed=42)
         clf.fit(X_train, list(train_labels), eval_metric="logloss", early_stopping_rounds=300, eval_set=[(X_dev, list(dev_labels))], verbose=1)
-        
+    
     elif args.model == "MLP":
         clf = train_MLP(X_train, train_labels, X_dev, dev_labels)
-        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts)
-        y_pred = clf.predict(X_test)
+    
     else:
         raise ValueError('Invalid classifcation model name')
     
@@ -73,7 +68,7 @@ def main(args):
             test_node_pairs.append((int(t[0]), int(t[1])))
     
     if not(X_test):
-        X_test = extract_features(graph, authors, nodes2vec, text2vec, aut2vec, test_node_pairs, graph_dicts)
+        X_test = extract_features(graph, authors, nodes2vec, text2vec, aut2vec, test_node_pairs, graph_dicts, path_adj=args.authors_adj)
         
         y_pred = clf.predict_proba(X_test)[:,1]
         
@@ -100,6 +95,8 @@ if __name__ =="__main__":
         help="Path to the node embeddings file")
     parser.add_argument("-pa", "--authors_path", type=str, default="embeddings/authors_embeddings.emb", 
         help="Path to the author embeddings file")
+    parser.add_argument("-adj", "--authors_adj", type=str, default="embeddings/adjacencyfinal.npz", 
+        help="Path to the author graph adjacency matrix")
     parser.add_argument("-nr", "--neg_ratio", type=int, default=1, 
         help="ratio of negative samples")
     parser.add_argument("-m", "--model", type=str, default="xgboost", 
