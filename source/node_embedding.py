@@ -36,7 +36,7 @@ if __name__ =="__main__":
 
     parser.add_argument("-nc", "--n_components", type=int, default=20,
                         help="Size of the embedding")
-    parser.add_argument("-ps", "--path_save", type=str, default="../embeddings/node_embeddings1.emb",
+    parser.add_argument("-ps", "--path_save", type=str, default="../embeddings/node_embeddings.emb",
                         help="Path to save the node embeddings file")
     
 
