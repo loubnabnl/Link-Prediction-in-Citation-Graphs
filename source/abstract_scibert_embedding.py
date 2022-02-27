@@ -107,7 +107,7 @@ if __name__ == '__main__':
         help="Path to the abstracts text file")
     parser.add_argument("--dim_reduction", type=bool, default=False, 
         help="Argument scpecifying whether to keep the embedding size 768 of scibert or reduce it")
-    parser.add_argument("--dim_reduction", type=int, default=64, 
+    parser.add_argument("--reduced_size", type=int, default=64, 
         help="embedding size after dimension reduction if applied")
     parser.add_argument("--path_save", type=str, default="../embeddings/abstract_embeddings.emb",
                         help="Path to save the abstract embeddings file")
