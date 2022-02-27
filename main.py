@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-import community.community_louvain as com
 import pickle 
 import csv
 from xgboost import XGBClassifier
@@ -29,16 +28,15 @@ def main(args):
     aut2vec = load_features(args.authors_path)
     nodes2vec = load_features(args.nodes_path)
     
-    
-    pos_samples_train, neg_samples_train, pos_samples_dev, neg_samples_dev = sample_negative_links(G, neg_ratio=args.neg_ratio)
+    pos_samples_train, neg_samples_train, pos_samples_dev, neg_samples_dev = sample_negative_links(G, 
+                                                                    args.neg_ratio, test_node_pairs)
     
     graph = get_training_graph(G, pos_samples_dev)
     graph_dicts = dict()
     graph_dicts["clustering_coeff"] = nx.algorithms.cluster.clustering(graph)
     graph_dicts["eigenvector"] = nx.algorithms.centrality.eigenvector_centrality(graph)
-    partition = com.best_partition(graph)
     
-    #split data
+    #training and validation data
     train_samples = pos_samples_train + neg_samples_train
     train_labels = [1 for x in pos_samples_train] + [0 for x in neg_samples_train]
     dev_samples = pos_samples_dev + neg_samples_dev
@@ -51,8 +49,8 @@ def main(args):
         aut_to_index  = pickle.load(f)
         
     print('Generating training and validation features...')  
-    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, graph_dicts, partition)
-    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, graph_dicts, partition)
+    X_train = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, train_samples, graph_dicts)
+    X_dev = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, dev_samples, graph_dicts)
     
     #classification
     print(f'Training Classifier {args.model} ...')
@@ -62,19 +60,20 @@ def main(args):
         
     elif args.model == "MLP":
         clf = train_MLP(X_train, train_labels, X_dev, dev_labels)
-        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts, partition)
+        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts)
         y_pred = clf.predict(X_test)
     else:
         raise ValueError('Invalid classifcation model name')
     
     print("Test phase...")
-    node_pairs = list()
+    test_node_pairs = list()
     with open(args.path_test, 'r') as f:
         for line in f:
             t = line.split(',')
-            node_pairs.append((int(t[0]), int(t[1])))
+            test_node_pairs.append((int(t[0]), int(t[1])))
+    
     if not(X_test):
-        X_test = extract_features(graph, authors, nodes2vec, text2vec,aut2vec, node_pairs, graph_dicts, partition)
+        X_test = extract_features(graph, authors, nodes2vec, text2vec, aut2vec, test_node_pairs, graph_dicts)
         
         y_pred = clf.predict_proba(X_test)[:,1]
         
@@ -89,9 +88,11 @@ def main(args):
 if __name__ =="__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="edgelist.txt", 
+    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
         help="Path to the graph edges text file")
-    parser.add_argument("-pg", "--path_test", type=str, default="test.txt", 
+    parser.add_argument("-a", "--authors", type=str, default="data/authors.txt", 
+        help="Path to the author  text file")
+    parser.add_argument("-pg", "--path_test", type=str, default="data/test.txt", 
         help="Path to the test file")
     parser.add_argument("-ab", "--abstract_path", type=str, default="embeddings/abstract_embeddings.emb",
                         help="Path to the abstract text file")
@@ -99,8 +100,6 @@ if __name__ =="__main__":
         help="Path to the node embeddings file")
     parser.add_argument("-pa", "--authors_path", type=str, default="embeddings/authors_embeddings.emb", 
         help="Path to the author embeddings file")
-    parser.add_argument("-a", "--authors", type=str, default="data/authors.txt", 
-        help="Path to the author  text file")
     parser.add_argument("-nr", "--neg_ratio", type=int, default=1, 
         help="ratio of negative samples")
     parser.add_argument("-m", "--model", type=str, default="xgboost", 
