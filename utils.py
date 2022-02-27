@@ -86,7 +86,7 @@ def sample_negative_links(G, neg_ratio):
 
     return pos_samples_train, neg_samples_train, pos_samples_dev, neg_samples_dev
 
-def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, abstract_embedding='scibert', path_adj = 'data/adjacencyfinal.npz'):
+def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, path_adj , abstract_embedding='scibert'):
     """Build feature matrix from the graph as a concatenation of
     node embeddings, abstract embeddings and authors embeddings with other contextual and graph-based features
 
@@ -98,9 +98,8 @@ def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, abstract_embeddi
         a2v: author embeddings for the papers
         samples: node pairs of the data
         gd: graph dictionary with clustering coeff, and eigenvector centrality of graph
-        abstract_embedding: either 'scibert' or 'word2vec'
         path_adj: path to the adjacency matrix of the author graph we generated
-
+        abstract_embedding: either 'scibert' or 'word2vec'
     Returns:
         numpy array storing features associated to node pairs in samples"""
         
