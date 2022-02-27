@@ -11,6 +11,7 @@ def create_node_embeddings(args):
     nodes = list(G.nodes())
     n = G.number_of_nodes()
     m = G.number_of_edges()
+    
     print("Training Node2vec...")
     model = Node2Vec(n_components=args.n_components, 
                 walklen=40,
@@ -30,12 +31,12 @@ def create_node_embeddings(args):
 
 if __name__ =="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
+    parser.add_argument("-pg", "--path_graph", type=str, default="../data/edgelist.txt", 
         help="Path to the graph edges text file")
 
     parser.add_argument("-nc", "--n_components", type=int, default=20,
                         help="Size of the embedding")
-    parser.add_argument("-ps", "--path_save", type=str, default="embeddings/node_embeddings.emb",
+    parser.add_argument("-ps", "--path_save", type=str, default="../embeddings/node_embeddings1.emb",
                         help="Path to save the node embeddings file")
     
 
