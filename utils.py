@@ -2,7 +2,6 @@ import gzip
 import pickle
 import numpy as np
 import scipy
-import torch
 import networkx as nx
 from tqdm import tqdm
 from random import randint
@@ -151,7 +150,7 @@ def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, path_adj , abstr
         else:
             common_authors = len(list(set(authors_left.strip().split(',')).intersection(authors_right.strip().split(','))))
 
-        total_features = list(features_final) + [JC, AAI, PA, CN, cluster_coeff, eigenvector, cosine_node, dist_abstract, cosine_author, 
+        total_features = list(features_final) + [JC, AAI, PA, CN, cluster_coeff, eigenvector, cosine_node, cosine_abstract, cosine_author, 
                                                  sum_dg, diff_dg, common_authors, colab, colab_mean]
 
         features.append(total_features)
