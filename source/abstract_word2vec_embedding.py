@@ -74,13 +74,13 @@ def main(args):
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
+    parser.add_argument("-pg", "--path_graph", type=str, default="../data/edgelist.txt", 
         help="Path to the graph edges text file")
-    parser.add_argument("-pa", "--path_abstract", type=str, default="data/abstracts.txt",
+    parser.add_argument("-pa", "--path_abstract", type=str, default="../data/abstracts.txt",
                         help="Path to the abstract text file")
     parser.add_argument("-sz", "--emb_size", type=int, default=64, 
                         help="word2vec abstract embedding size")
-    parser.add_argument("-ps", "--path_save", type=str, default="ambeddings/abstract_wv_embeddings.emb",
+    parser.add_argument("-ps", "--path_save", type=str, default="../embeddings/abstract_wv_embeddings.emb",
                         help="Path to save the abstract embeddings file")
 
     
