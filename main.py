@@ -96,7 +96,7 @@ if __name__ =="__main__":
         help="Path to the author embeddings")
     parser.add_argument("--authors_adj", type=str, default="embeddings/adjacencyfinal.npz", 
         help="Path to the author graph adjacency matrix")
-    parser.add_argument("--neg_ratio", type=int, default=1, 
+    parser.add_argument("--neg_ratio", type=float, default=1, 
         help="ratio of negative samples")
     parser.add_argument("--model", type=str, default="xgboost", 
         help="classification model")
