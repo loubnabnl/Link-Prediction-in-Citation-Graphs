@@ -1,4 +1,3 @@
-community
 gensim
 karateclub
 networkx
