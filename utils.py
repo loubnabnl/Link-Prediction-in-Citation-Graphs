@@ -5,12 +5,19 @@ import scipy
 import torch
 import networkx as nx
 from tqdm import tqdm
+from random import randint
 from sklearn.metrics import f1_score, log_loss
 
 def load_features(filename):
     with gzip.open(filename, "rb") as f:
         loaded_object = pickle.load(f)
         return loaded_object
+
+def get_training_graph(graph, edges_to_remove):
+    res_graph = graph.copy()
+    for edge in edges_to_remove:
+        res_graph.remove_edge(edge[0], edge[1])
+    return res_graph
 
 def return_metrics(true, preds, thres=0.5):
     preds_label = np.where(preds > thres, 1, 0)
@@ -45,7 +52,41 @@ def load_adjacency_author(authors, path_adj = 'data/adjacencyfinal.npz'):
         i+=1
     return A, aut_to_index
 
-def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstract_embedding='scibert', path_adj = 'data/adjacencyfinal.npz'):
+def sample_negative_links(G, neg_ratio):
+    """create neg_ratio * G.number_of_edges negative samples (i.e pair of nodes without anedge)"""
+
+    nodes = list(G.nodes())
+    pos_edges = list(G.edges())
+    n = G.number_of_nodes()
+    m = G.number_of_edges()
+
+    non_edges = []
+    nb_neg_samples = neg_ratio * m
+
+    for i in tqdm(range(int(nb_neg_samples))):
+        n1 = nodes[randint(0, n-1)]
+        n2 = nodes[randint(0, n-1)]
+    
+        while G.has_edge(n1, n2) or n1==n2 :
+            n1 = nodes[randint(0, n-1)]
+            n2 = nodes[randint(0, n-1)]
+        non_edges.append((n1, n2))
+
+    np.random.shuffle(pos_edges)
+    np.random.shuffle(non_edges)
+
+    # validation set samples
+    number_pos_dev = int(0.1 * len(pos_edges))
+    number_neg_dev = int(0.1 * len(non_edges))
+
+    pos_samples_dev = pos_edges[:number_pos_dev]
+    neg_samples_dev = non_edges[:number_neg_dev]
+    pos_samples_train = list(set(pos_edges) - set(pos_samples_dev))
+    neg_samples_train = list(set(non_edges) - set(neg_samples_dev))
+
+    return pos_samples_train, neg_samples_train, pos_samples_dev, neg_samples_dev
+
+def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, abstract_embedding='scibert', path_adj = 'data/adjacencyfinal.npz'):
     """Build feature matrix from the graph as a concatenation of
     node embeddings, abstract embeddings and authors embeddings with other contextual and graph-based features
 
@@ -56,7 +97,7 @@ def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstr
         t2v: abstract embeddings
         a2v: author embeddings for the papers
         samples: node pairs of the data
-        gd: graph dictionary with clustering coeff, partition and eigenvector centrality of graph
+        gd: graph dictionary with clustering coeff, and eigenvector centrality of graph
         abstract_embedding: either 'scibert' or 'word2vec'
         path_adj: path to the adjacency matrix of the author graph we generated
 
@@ -75,10 +116,7 @@ def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstr
         JC = list(nx.jaccard_coefficient(graph, [(edge[0], edge[1])]))[0][2]
         PA = list(nx.preferential_attachment(graph, [(edge[0], edge[1])]))[0][2]
         CN = len(list(nx.common_neighbors(graph, u=edge[0], v=edge[1])))
-        if partition[edge[0]] == partition[edge[1]]:
-            com_partition = 1
-        else:
-            com_partition = 0
+
         cluster_coeff = gd["clustering_coeff"][edge[0]] * gd["clustering_coeff"][edge[1]]
         eigenvector = gd["eigenvector"][edge[0]] * gd["eigenvector"][edge[1]]
 
@@ -114,7 +152,7 @@ def extract_features(graph, authors, n2v, t2v,a2v, samples, gd, partition, abstr
         else:
             common_authors = len(list(set(authors_left.strip().split(',')).intersection(authors_right.strip().split(','))))
 
-        total_features = list(features_final) + [JC, AAI, PA, CN, com_partition, cluster_coeff, eigenvector, cosine_node, dist_abstract, cosine_author, 
+        total_features = list(features_final) + [JC, AAI, PA, CN, cluster_coeff, eigenvector, cosine_node, dist_abstract, cosine_author, 
                                                  sum_dg, diff_dg, common_authors, colab, colab_mean]
 
         features.append(total_features)
