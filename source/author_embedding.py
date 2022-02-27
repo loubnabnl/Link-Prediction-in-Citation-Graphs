@@ -69,14 +69,14 @@ def main(args):
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
+    parser.add_argument("-pg", "--path_graph", type=str, default="../data/edgelist.txt", 
         help="Path to the graph edges text file")
 
     parser.add_argument("-nc", "--n_components", type=int, default=20,
                         help="Size of the embedding")
-    parser.add_argument("-pa", "--authors", type=str, default="data/authors.txt", 
+    parser.add_argument("-pa", "--authors", type=str, default="../data/authors.txt", 
                         help="Path to the author  text file")
-    parser.add_argument("-ps", "--path_save", type=str, default="embeddings/authors_embeddings.emb",
+    parser.add_argument("-ps", "--path_save", type=str, default="../embeddings/authors_embeddings.emb",
                         help="Path to save the authors embeddings file")
 
     main(parser.parse_args())
