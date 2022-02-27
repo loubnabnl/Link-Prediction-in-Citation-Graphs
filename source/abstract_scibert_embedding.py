@@ -101,15 +101,15 @@ def create_scibert_embeddings(args):
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("-pg", "--path_graph", type=str, default="data/edgelist.txt", 
+    parser.add_argument("--path_graph", type=str, default="../data/edgelist.txt", 
         help="Path to the graph edges text file")
-    parser.add_argument("-pa", "--abstracts", type=str, default="data/abstracts.txt", 
+    parser.add_argument("--abstracts", type=str, default="../data/abstracts.txt", 
         help="Path to the abstracts text file")
-    parser.add_argument("-pca", "--dim_reduction", type=bool, default=False, 
+    parser.add_argument("--dim_reduction", type=bool, default=False, 
         help="Argument scpecifying whether to keep the embedding size 768 of scibert or reduce it")
-    parser.add_argument("-dr", "--dim_reduction", type=int, default=64, 
+    parser.add_argument("--dim_reduction", type=int, default=64, 
         help="embedding size after dimension reduction if applied")
-    parser.add_argument("-ps", "--path_save", type=str, default="embeddings/abstract_embeddings.emb",
+    parser.add_argument("--path_save", type=str, default="../embeddings/abstract_embeddings.emb",
                         help="Path to save the abstract embeddings file")
 
     create_scibert_embeddings(parser.parse_args())
